@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Data Saver</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f4ef;--card:#fff;--tx:#1f1d1a;--mut:#6b675f;--bd:#e2ded4;--ac:#c4552d;--ac2:#2b6cb0;--me:#efe9dc;--ai:#e8f0fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171614;--card:#222120;--tx:#f0ede6;--mut:#a29d92;--bd:#38352f;--ac:#e0764d;--ac2:#6aa5e6;--me:#2e2b25;--ai:#1f2a38}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Tahoma,"Segoe UI",system-ui,sans-serif;line-height:1.6}
+main{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:0 0 4px}.sub{color:var(--mut);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px}
+.models{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.m{border:2px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:16px;font:inherit;font-size:17px;cursor:pointer}
+.m.sel{border-color:var(--ac);background:var(--me)}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:11px 18px;font:inherit;font-size:16px;cursor:pointer}
+.btn.sec{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#log{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.msg{padding:10px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+.msg.me{background:var(--me)}.msg.ai{background:var(--ai)}
+.who{font-size:12px;color:var(--mut);margin-bottom:2px}
+textarea{width:100%;min-height:90px;border:1px solid var(--bd);border-radius:10px;padding:10px;font:inherit;background:var(--bg);color:var(--tx);resize:vertical}
+.badge{display:inline-block;background:var(--ac);color:#fff;border-radius:99px;padding:2px 12px;font-size:14px}
+.hide{display:none}.note{font-size:13px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>💾 Data Saver</h1>
+<p class="sub">احفظ محادثتك مع الذكاء الاصطناعي وانقلها لنموذج تاني بسهولة</p>
+
+<section id="s1" class="card">
+  <b>١) بتتكلم مع أنهي نموذج؟</b>
+  <div class="models" style="margin-top:10px">
+    <button class="m" data-m="Claude">Claude</button>
+    <button class="m" data-m="Gemini Web">Gemini Web</button>
+  </div>
+  <div class="row"><button id="start" class="btn" disabled>البدء</button></div>
+</section>
+
+<section id="s2" class="card hide">
+  <div style="margin-bottom:10px">النموذج الحالي: <span id="cur" class="badge"></span> · الرسائل: <span id="cnt">0</span></div>
+  <div id="log"></div>
+  <textarea id="txt" placeholder="اكتب أو الصق الرسالة هنا..."></textarea>
+  <div class="row">
+    <button class="btn" id="addMe">+ رسالتي</button>
+    <button class="btn" id="addAi" style="background:var(--ac2)">+ رد الذكاء الاصطناعي</button>
+  </div>
+  <p class="note">ملحوظة: الموقع مش بيقدر يقرا شات claude.ai أو Gemini تلقائياً (حماية المتصفح)، فانسخ الرسائل والصقها هنا.</p>
+</section>
+
+<section id="s3" class="card hide">
+  <b>٢) النقل لنموذج تاني</b>
+  <div class="models" style="margin-top:10px">
+    <button class="m" data-t="Claude">Claude</button>
+    <button class="m" data-t="Gemini Web">Gemini Web</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="exp" disabled>إنشاء ملف النقل</button>
+    <button class="btn sec" id="cp" disabled>نسخ النص</button>
+    <button class="btn sec" id="reset">محادثة جديدة</button>
+  </div>
+</section>
+</main>
+<script>
+let model=null,target=null,started=false,msgs=[];
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem("ds",JSON.stringify({model,msgs,started}))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem("ds")||"null");if(d){model=d.model;msgs=d.msgs||[];started=!!d.started}}catch(e){}}
+function render(){
+  $("s1").classList.toggle("hide",started);
+  $("s2").classList.toggle("hide",!started);
+  $("s3").classList.toggle("hide",!started);
+  $("cur").textContent=model||"";
+  $("cnt").textContent=msgs.length;
+  const log=$("log");log.innerHTML="";
+  msgs.forEach(m=>{const d=document.createElement("div");d.className="msg "+m.r;
+    const w=document.createElement("div");w.className="who";w.textContent=m.r==="me"?"أنا":model;
+    const t=document.createElement("div");t.textContent=m.t;d.append(w,t);log.append(d)});
+  log.scrollTop=log.scrollHeight;
+  document.querySelectorAll("[data-t]").forEach(b=>b.classList.toggle("sel",b.dataset.t===target));
+  $("exp").disabled=$("cp").disabled=!target||!msgs.length;
+}
+document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{
+  model=b.dataset.m;
+  document.querySelectorAll("[data-m]").forEach(x=>x.classList.toggle("sel",x===b));
+  $("start").disabled=false});
+$("start").onclick=()=>{started=true;save();render()};
+function add(r){const t=$("txt").value.trim();if(!t)return;msgs.push({r,t});$("txt").value="";save();render()}
+$("addMe").onclick=()=>add("me");$("addAi").onclick=()=>add("ai");
+document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{target=b.dataset.t;render()});
+function build(){
+  const lines=msgs.map(m=>(m.r==="me"?"أنا":"الذكاء الاصطناعي ("+model+")")+":\n"+m.t).join("\n\n---\n\n");
+  return "دا الشات بيني وبين نموذج الذكاء الاصطناعي ("+model+")، ودي المحادثة كاملة.\n"+
+  "استخرج الكلام والداتا المهمة منها (الأهداف، القرارات، الكود، التفاصيل) عشان تقدر تكمل من نفس النقطة، وانت دلوقتي "+target+".\n"+
+  "لما تخلص قراية قولي إنك جاهز وكمل معايا.\n\n"+
+  "=== بداية المحادثة ("+msgs.length+" رسالة) ===\n\n"+lines+"\n\n=== نهاية المحادثة ===\n";
+}
+$("exp").onclick=()=>{
+  const b=new Blob([build()],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download="data-saver-"+target.replace(/\s/g,"-")+".txt";a.click();
+  model=target;save();render()};
+$("cp").onclick=async()=>{try{await navigator.clipboard.writeText(build());$("cp").textContent="تم النسخ ✓";setTimeout(()=>$("cp").textContent="نسخ النص",1500)}catch(e){$("cp").textContent="النسخ مش متاح، استخدم الملف"}};
+$("reset").onclick=()=>{msgs=[];started=false;model=target=null;$("start").disabled=true;
+  document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("sel"));save();render()};
+load();render();
+</script>
+</body>
+</html>
